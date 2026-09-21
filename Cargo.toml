@@ -1,0 +1,39 @@
+[package]
+name = "audio_converter"
+version = "0.3.0"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+# egui/eframe 0.36 系は App トレイトの形状自体が update(ctx, frame) から
+# ui(ui, frame) ベースに再設計されており(レンダリングバックエンドの刷新に伴う変更)、
+# 本プロジェクトのコードとは非互換。この再設計がどのバージョンから
+# 入ったかを確実に特定できなかったため、安全のため十分枯れた 0.29 系
+# (2024年9月リリース、要求 rustc 1.76)に固定している。
+# より新しい egui を試したい場合は、公式の移行ガイド/CHANGELOG を確認しながら
+# 1バージョンずつ上げることを推奨(egui は頻繁に破壊的変更が入るクレート)。
+eframe = "0.29"
+egui = "0.29"
+rfd = "0.17"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+[build-dependencies]
+# winres (最終更新 2021年、Rust 1.61+ では動作しないことがあり事実上未保守) から
+# 同一APIの保守フォークである winresource に切り替え。
+#
+# 注意: build-dependencies を `[target.'cfg(windows)'.build-dependencies]` のように
+# cfg(windows) で絞ってはいけない。build-dependencies の cfg は「ビルドスクリプルを
+# 実際にコンパイル・実行するホスト環境」に対して評価される(クロスコンパイルでは
+# ビルド対象OSと無関係)。そのためこれを cfg(windows) にすると、Windows 以外の
+# ホスト(Linux上でのCI/`cargo check`、あるいはWindows向けクロスコンパイル)では
+# 依存関係自体が存在せず、build.rs 内の `winresource::...` 参照がコンパイルエラーに
+# なってしまう(実際にLinux環境でこの不具合を確認して修正した)。
+# 実行対象を絞る判定は build.rs 側の `CARGO_CFG_TARGET_OS` チェック(実行時分岐)で
+# 行っているため、依存関係そのものは常に(全ホストで)解決できるようにしておく。
+winresource = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
